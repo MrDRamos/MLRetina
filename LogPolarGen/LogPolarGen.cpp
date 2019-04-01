@@ -4,13 +4,6 @@
 #include <map>
 #include <tuple>
 #include <algorithm>
-const double pi = 3.14159265358979323846;
-
-struct Point
-{
-	float x;
-	float y;
-};
 
 struct GridPtSource
 {
@@ -22,12 +15,6 @@ struct GridPtSource
 class WedgeRoi
 {
 protected:
-
-	static Point Rad2Xy(float R, float A)
-	{
-		Point xy = { R * cos(A), R * sin(A) };
-		return xy;
-	}
 
 	static std::vector<GridPtSource> GetGridPt(float Rmin, float Rmax, int nR, float Amin, float Amax, int nA)
 	{
@@ -53,7 +40,7 @@ protected:
 		}
 		else
 		{
-			dR = (Rmax - Rmin) / (nA - 1);
+			dR = (Rmax - Rmin) / (nR - 1);
 		}
 
 		float A = Amin;
@@ -86,24 +73,22 @@ protected:
 
 public:
 
-	static std::vector<GridPtSource> NewTemplate(uint16_t Rn, uint16_t An)
+	static std::vector<GridPtSource> NewTemplate(uint16_t Rxy, uint16_t Rn, uint16_t An)
 	{
+		const double pi = 3.14159265358979323846;
 		const float nAdP = 2.0; // Arc probing density/grid-point
 		const float nRdP = 2.0; // Radial probing density/grid-point
 		float Arc = 2.0f * (float)pi / An;
 		std::vector<GridPtSource> Retval;
+		Retval.reserve((size_t)(nRdP * Rn * nAdP * An));
 
-		Retval.reserve(Rn * An * 10);
+		float logBase = log(Rxy)/Rn;
 
 		float Rmin = 0;
-		for (uint16_t ri = 0; ri < Rn; ri++)
+		for (uint16_t ri = 1; ri <= Rn; ri++)
 		{
-// todo: 
-			float dr = 1 + ri;
-			float dr = log(dr) / log(2);
-			float Rmax = (float)(Rmin + dr);
-// todo: 
-			uint16_t nR = (uint16_t)std::round(Rmax - Rmin * nRdP);
+			float Rmax = exp(ri * logBase);
+			uint16_t nR = (uint16_t)std::round((Rmax - Rmin) * nRdP);
 			uint16_t nA = (uint16_t)std::round(Arc * Rmax * nAdP);
 			for (uint16_t ai = 0; ai < An; ai++)
 			{
@@ -135,9 +120,10 @@ public:
 
 int main()
 {
-	uint16_t Rn = 400; // Radia
-	uint16_t An = 360; // anglest
-	auto LogPlolarTemplate = WedgeRoi::NewTemplate(Rn, An);
+	uint16_t Rxy = 400; // Grid points
+	uint16_t Rn = 400;	// Radia
+	uint16_t An = 360;	// Angles
+	auto LogPlolarTemplate = WedgeRoi::NewTemplate(Rxy, Rn, An);
 
 	uint16_t xCenter = (uint16_t)Rn / 2;
 	uint16_t yCenter = xCenter;
